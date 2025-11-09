@@ -1,0 +1,22 @@
+services:
+  test-db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=test_user
+      - POSTGRES_PASSWORD=test_password
+      - POSTGRES_DB=test_db
+  enquiry-automation-service:
+    build:
+      context: ../
+      dockerfile: ./.docker/test/Dockerfile
+    command: poetry run pytest
+    env_file:
+      - ../src/.env.test
+    environment:
+      - TEST_DB_HOST=test-db
+      - TEST_DB_PORT=5432
+      - TEST_DB_NAME=test_db
+      - TEST_DB_USER=test_user
+      - TEST_DB_PASS=test_password
+    depends_on:
+      - test-db

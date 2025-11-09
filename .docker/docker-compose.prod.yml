@@ -1,0 +1,25 @@
+services:
+  enquiry-automation-service:
+    networks:
+      myMacvlan:
+        ipv4_address: 10.10.40.185
+    build:
+      context: ../
+      dockerfile: ./.docker/prod/Dockerfile
+    restart: always
+    ports:
+      - 7778:7778
+    env_file:
+      - ../src/.env
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+      update_config:
+        failure_action: rollback
+        order: stop-first
+
+networks:
+  myMacvlan:
+    external: true

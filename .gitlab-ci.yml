@@ -1,0 +1,74 @@
+stages:
+    - test
+    - staging
+    - deploy
+
+workflow:
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_BRANCH == 'dev' || $CI_COMMIT_BRANCH == 'master'
+
+unit-test-job:
+    stage: test
+    variables:
+        SECURE_FILES_DOWNLOAD_PATH: "./src/"
+    tags:
+        - sandbox
+    rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event' && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'dev' || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'master')
+    script:
+        - CI_API_V4_URL="https://gititt.mirea.ru/api/v4"
+        - echo "Starting test environment."
+        - curl --connect-timeout 5 -sk --retry 6 --retry-delay 0 --max-time 30 --retry-max-time 300 https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer | bash
+        - echo "Secure files downloaded successfully."
+        - >
+            docker compose
+            -f .docker/docker-compose.ci-test.yml
+            -p enquiry-test
+            up
+            --build
+            --abort-on-container-exit
+            --exit-code-from enquiry-automation-service
+    after_script:
+        - echo "Tearing down test environment..."
+        - >
+            docker compose
+            -f .docker/docker-compose.ci-test.yml
+            -p enquiry-test
+            down
+            -v --remove-orphans
+
+dev-deploy-job:
+    stage: staging
+    environment: development
+    variables:
+        SECURE_FILES_DOWNLOAD_PATH: "./src/"
+    tags:
+        - sandbox
+    rules:
+        - if: $CI_COMMIT_BRANCH == 'dev'
+    script:
+        - echo "Deploying application..."
+        - CI_API_V4_URL="https://gititt.mirea.ru/api/v4"
+        - curl --connect-timeout 5 -sk --retry 6 --retry-delay 0 --max-time 30 --retry-max-time 300 https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer | bash
+        - docker compose -f .docker/docker-compose.yml -p dev down
+        - docker image prune -f
+        - docker compose -f .docker/docker-compose.yml -p dev up --build -d
+        - echo "Application successfully deployed."
+
+prod-deploy-job:
+    stage: deploy
+    environment: production
+    variables:
+        SECURE_FILES_DOWNLOAD_PATH: "./src/"
+    tags:
+        - digital-astra
+    rules:
+        - if: $CI_COMMIT_BRANCH == "master"
+    script:
+        - echo "Deploying application..."
+        - curl --connect-timeout 5 -sk --retry 6 --retry-delay 0 --max-time 30 --retry-max-time 300 https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer | bash
+        - docker compose -f .docker/docker-compose.prod.yml -p prod down
+        - docker image prune -f
+        - docker compose -f .docker/docker-compose.prod.yml -p prod up --build -d
+        - echo "Application successfully deployed."

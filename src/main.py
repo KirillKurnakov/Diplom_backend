@@ -1,7 +1,15 @@
+import uvicorn
+from starlette.middleware.cors import CORSMiddleware
 from authorize import authorizeModule
+from db import querytable
+from fastapi import FastAPI
+from authorize.authorizeModule import router as authorize_router
+from db.querytable import router as querytable_router
 
-# import uvicorn
-# from fastapi import FastAPI
+from flask import Flask
+
+app = FastAPI()
+
 # from fastapi.middleware.cors import CORSMiddleware
 #
 # from api import all_routers
@@ -12,24 +20,31 @@ from authorize import authorizeModule
 #     summary=get_variables().app_description,
 # )
 #
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 #
 # for router in all_routers:
 #     app.include_router(router)
 
+app.include_router(authorize_router)
+app.include_router(querytable_router)
 
 if __name__ == "__main__":
-    password = 'Kirill11'
-    print(authorizeModule.hash_func(bytes(password, 'utf-8')))
-    # uvicorn.run(
-    #     app="main:app",
-    #     host="0.0.0.0",
-    #     port=7778,
-    #     reload=get_variables().reload,
-    # )
+    authorizeModule.check_user_pass('Kurnakov', '123')
+
+
+    #password = 'Kirill11'
+    #print(authorizeModule.hash_func(bytes(password, 'utf-8')))
+
+    # запуск сервера
+    uvicorn.run(
+        app="main:app",
+        host="0.0.0.0",
+        port=7778,
+        #reload=get_variables().reload,
+    )

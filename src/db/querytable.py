@@ -1,9 +1,10 @@
-from tokenize import String
+from sqlalchemy import String
 
 from fastapi import APIRouter
 from sqlalchemy import text, create_engine, Column, Integer, Float, Table
 from sqlalchemy.orm import sessionmaker, declarative_base
-from authorize import authorizeModule
+
+from src.authorize import authorizeModule
 
 # Base = declarative_base()
 
@@ -21,7 +22,7 @@ class Pfhd(authorizeModule.Base):
     __tablename__ = 'pfhd_spravki'
 
     inn = Column(String)
-    id = Column(String)
+    id = Column(String, primary_key=True)
     strcode = Column(String)
     sumcurfinyear = Column(Float)
     sumfirstyearplper = Column(Float)
@@ -42,17 +43,17 @@ def get_session():
     return session
 
 
-@router.get("/getpfhd")
-def get_pfhd():
-    db = get_session()
-    try:
-        result = db.execute(text("SELECT * FROM diplom.pfhd_spravki")).mappings().all()
-        return [dict(row) for row in result]  # JSON
-    finally:
-        db.close()
-    # session = get_session()
-    # pfhds = session.query(Pfhd).all()
-    # result = [u.__dict__ for u in pfhds]
-    # for r in result:
-    #     r.pop('_sa_instance_state', None)
-    # return result
+@router.get("/getpfhd",
+            description="Получение данных по ПФХД",
+            summary="Получение данных по ПФХД")
+def get_pfhd(limit_str):
+
+    session = get_session()
+    pfhds = session.query(Pfhd).limit(limit_str).all()
+
+    result = [u.__dict__ for u in pfhds]
+    for r in result:
+        r.pop('_sa_instance_state', None)
+
+    return result
+

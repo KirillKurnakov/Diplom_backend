@@ -6,6 +6,7 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String
 import hashlib
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 import logging
 
 # Определение модели
@@ -29,7 +30,14 @@ class User(Base):
     passw = Column(String)
 
 
-@router.post("/registration")
+class Auth(BaseModel):
+    login_f: str
+    passw_f: str
+
+
+@router.post("/registration",
+             description="Создать пользователя",
+             summary="Создать пользователя")
 def create_user(name_f, lastname_f, email_f, login_f, pass_f):
     session = get_session()
     pass_f_hash = hash_func(bytes(pass_f, 'utf-8'))
@@ -41,15 +49,18 @@ def create_user(name_f, lastname_f, email_f, login_f, pass_f):
         status_code=201
     )
 
-@router.post("/deleteuser")
+
+@router.delete("/deleteuser",
+               description="Удалить пользователя",
+               summary="Удалить пользователя")
 def delete_user(id_back):
     session = get_session()
-    #pass_f_hash = hash_func(bytes(pass_f, 'utf-8'))
-    #user = User(name=name_f, lastname=lastname_f, email=email_f, login=login_f, passw=pass_f_hash)
+    # pass_f_hash = hash_func(bytes(pass_f, 'utf-8'))
+    # user = User(name=name_f, lastname=lastname_f, email=email_f, login=login_f, passw=pass_f_hash)
     user = session.query(User).filter_by(id=id_back).first()
     if user is None:
         return JSONResponse(
-            content={"message":"User not found"},
+            content={"message": "User not found"},
             status_code=404
         )
     else:
@@ -67,10 +78,19 @@ def delete_user(id_back):
 def get_users():
     session = get_session()
     users = session.query(User).all()
+    if not users:
+        return JSONResponse(
+            content={"message": "Users not found"},
+            status_code=404
+        )
     result = [u.__dict__ for u in users]
     for r in result:
         r.pop('_sa_instance_state', None)
-    return result
+        r.pop('passw', None)
+    return JSONResponse(
+        content=result,
+        status_code=200
+    )
 
 
 @router.get("/users/{user_id}",
@@ -113,8 +133,13 @@ def get_users_one(login_for):
     #   print(f"ID: {user.id}, Name: {user.name}")
 
 
-@router.get("/authorization")
-def check_user_pass(login_f, pass_f):
+@router.post("/authorization",
+             description="Авторизация пользователя",
+             summary="Авторизация пользователя")
+def check_user_pass(data: Auth):
+    login_f = data.login_f
+    pass_f = data.passw_f
+    print("login:", login_f, " pass_f:", pass_f)
     passw_bd = get_users_one(login_f)
     password_f = hash_func(bytes(pass_f, 'utf-8'))
     # print("Хэш пароль с фронта", password_f)

@@ -35,7 +35,7 @@ app.include_router(authorize_router)
 app.include_router(querytable_router)
 
 if __name__ == "__main__":
-    authorizeModule.check_user_pass('Kurnakov', '123')
+    # authorizeModule.check_user_pass('Kurnakov', '123')
 
 
     #password = 'Kirill11'

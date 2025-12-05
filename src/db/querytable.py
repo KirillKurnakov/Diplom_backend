@@ -258,7 +258,7 @@ def get_protocols_chart():
         "title": {"text": "Данные по субсидиям"},
         "xAxis": {
             "categories": categories,
-            "title": {"text": None},
+            "title": {"text": "Направления доходов"},
             "gridLineWidth": 1,
             "lineWidth": 0
         },
